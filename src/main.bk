@@ -1,0 +1,187 @@
+# -*- coding:utf-8 -*- 
+import pygame, gameEngine, random
+from pygame.locals import *
+class Hero(gameEngine.SuperSprite):
+	"""docstring for Hero"""
+	def __init__(self,scene,canControl,role,loc,maxHP,maxSP):
+		gameEngine.SuperSprite.__init__(self,scene)
+
+		self.NOTCON=0
+		self.UPDOWN=1
+		self.WS=2
+
+		self.KNIGHT=0
+		self.MOOD=1
+
+		
+		
+		self.canControl=canControl
+		self.role = role
+		self.setImages()
+
+		self.x=loc[0]
+		self.y=loc[1]
+		self.speeds=[0,0]
+		self.speedFlag=0
+		self.constantSpeedFlag=2
+		self.speed = 10
+		self.moveImagesOffset=0
+
+		self.attackImagesOffset=0
+		self.attackSpeed = 1
+		self.maxHP=maxHP
+		self.HP=maxHP
+		self.maxSP=maxSP
+		self.SP=maxSP
+	def checkEvents(self):
+		if(self.canControl==self.UPDOWN):
+			keys = pygame.key.get_pressed()
+			if keys[pygame.K_LEFT]:
+				self.speeds[0]=-self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_RIGHT]:
+				self.speeds[0]=self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_UP]:
+				self.speeds[1]=-self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_DOWN]:
+				self.speeds[1]=self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_a]:
+				if self.attackImagesOffset==0:
+					self.HP-=100
+					self.attackImagesOffset=1
+					self.scene.sound_attack_begin.play()
+		elif(self.canControl==self.WS):
+			keys = pygame.key.get_pressed()
+			if keys[pygame.K_a]:
+				self.speeds[0]=-self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_d]:
+				self.speeds[0]=self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_w]:
+				self.speeds[1]=-self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_s]:
+				self.speeds[1]=self.speed
+				self.speedFlag=self.constantSpeedFlag
+			if keys[pygame.K_j]:
+				if self.attackImagesOffset==0:
+					self.HP-=100
+					self.attackImagesOffset=1
+					self.scene.sound_attack_begin.play()
+		elif(self.canControl==self.NOTCON):
+			pass
+	def update(self):
+		self.oldCenter = self.rect.center
+		self.checkEvents()
+		self.checkBounds()
+		self.updateOffset()
+		self.updateState()
+		self.updatePos()
+		self.updateImage()
+		self.rect.center = (self.x, self.y)
+	def updateOffset(self):
+		if(self.attackImagesOffset!=0):
+			self.attackImagesOffset+=1
+		if int(self.attackImagesOffset*self.attackSpeed)>=len(self.attackImages):
+				self.attackImagesOffset=0
+	def updateState(self):
+		if(self.HP>self.maxHP):
+			self.HP=self.maxHP
+		elif(self.HP<0):
+			self.HP=0
+		if(self.SP>self.maxSP):
+			self.SP=self.maxSP
+		elif(self.SP<0):
+			self.SP=0
+	def updateImage(self):
+		def drawHp(image,maxHP,HP,maxSP,SP):
+			cen=105
+			HP=float(HP)
+			SP=float(SP)
+			if(HP/maxHP<0.2):
+				color1=[160,0,0]
+				color2=[198,0,68]
+				color3=[227,80,110]
+			elif(HP/maxHP<0.4):
+				color1=[255,121,0]
+				color2=[255,180,14]
+				color3=[237,229,213]
+			else:
+				color1=[0,160,0]
+				color2=[0,198,68]
+				color3=[80,227,110]
+			pygame.draw.rect(image,[200,200,240],Rect((cen-50,0),(101,26)))
+			pygame.draw.rect(image,[0,0,0],Rect((cen-50,0),(101,26)),2)
+			pygame.draw.rect(image,[0,0,0],Rect((cen-47,3),(95,12)))
+			pygame.draw.rect(image,color1,Rect((cen-47,3),(int(95*HP/maxHP),12)))
+			pygame.draw.rect(image,color2,Rect((cen-47,6),(int(95*HP/maxHP),2)))
+			pygame.draw.rect(image,color3,Rect((cen-47,8),(int(95*HP/maxHP),2)))
+			pygame.draw.rect(image,[0,0,0],Rect((cen-47,3),(95,12)),2)
+			tmp=maxHP-maxHP%100
+			while tmp>0:
+				if(tmp%500)==0:
+					tmpWidth=2
+				else:
+					tmpWidth=1
+				pygame.draw.line(image, [0,0,0], [cen-47+int(95*tmp/maxHP)-1,3], [cen-47+int(95*tmp/maxHP)-1,3+12],tmpWidth)
+				tmp-=100
+
+			pygame.draw.rect(image,[0,0,0],Rect((cen-47,17),(95,6)))
+			pygame.draw.rect(image,[0,82,183],Rect((cen-47,17),(int(95*SP/maxSP),6)))
+			pygame.draw.rect(image,[85,136,159],Rect((cen-47,17),(int(95*SP/maxSP),2)))
+			pygame.draw.rect(image,[0,0,0],Rect((cen-47,17),(95,6)),2)
+		if self.attackImagesOffset!=0:
+			self.image = self.attackImages[int(self.attackImagesOffset*self.attackSpeed)]	
+		else:
+			self.image= self.imageMaster
+		drawHp(self.image,self.maxHP,self.HP,self.maxSP,self.SP)
+	def updatePos(self):
+		if self.speedFlag!=0:
+			self.speedFlag-=1
+		if self.speedFlag==0:
+			self.speeds[0]=self.speeds[1]=0
+		self.x+=self.speeds[0];
+		self.y+=self.speeds[1];
+	def setImages(self):
+		self.attackImages=[];
+		self.moveImages=[];
+		if(self.role==self.KNIGHT):
+			self.setImage("../res/knight/knight.gif")
+			#第一张图片无法访问，无所谓，随意设置
+			self.attackImages.append(pygame.image.load("../res/knight/knight.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_01.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_02.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_03.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_04.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_05.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_06.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_07.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_08.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/attack_09.gif").convert())
+		elif(self.role==self.MOOD):
+			self.setImage("../res/knight/mood.gif")
+			#第一张无所谓，第二张就是站立姿势
+			self.attackImages.append(pygame.image.load("../res/knight/mood.gif").convert())
+			self.attackImages.append(pygame.image.load("../res/knight/mood.gif").convert())
+			self.moveImages.append(pygame.image.load("../res/knight/mood.gif").convert())
+			self.moveImages.append(pygame.image.load("../res/knight/mood.gif").convert())
+class Game(gameEngine.Scene):
+	def __init__(self):
+		gameEngine.Scene.__init__(self)
+		self.screen = pygame.display.set_mode((1280,960))
+		self.background = pygame.Surface(self.screen.get_size())
+		self.background.fill((0, 0, 0))
+		self.sound_attack_begin = pygame.mixer.Sound("../res/sound/attack_begin.wav")
+		self.sprites=[Hero(self,1,0,[480,320],3200,200),Hero(self,0,1,[800,320],500,500)];
+
+
+		
+def main():
+	game = Game()
+	game.start()
+if  __name__ == '__main__':
+	main()
