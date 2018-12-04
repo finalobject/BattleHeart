@@ -672,10 +672,9 @@ if __name__ == "__main__":
     # (as it usually will be
 
     game = Scene()
-    thing = SuperSprite(game)
-    thing.setSpeed(5)
-    thing.setBoundAction(thing.BOUNCE)
-    thing.setAngle(230)
-    game.sprites = [thing]
+    # thing = SuperSprite(game)
+    # thing.setSpeed(5)
+    # thing.setBoundAction(thing.BOUNCE)
+    # game.sprites = [thing]
 
     game.start()
